@@ -49,7 +49,7 @@ await Future.wait([
 ```
 
 **Impact:**
-- **Estimated 30-50% reduction in cold start time** on desktop platforms
+- **Estimated 30-40% reduction in cold start time** on desktop platforms
 - Non-blocking initialization prevents UI freeze
 - Better error resilience with proper error handling
 
