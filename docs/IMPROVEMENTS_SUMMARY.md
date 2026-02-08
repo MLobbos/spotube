@@ -83,11 +83,28 @@ await Future.wait([
 ## Metrics & Measurements
 
 ### Performance Improvements
+
+**Measurement Methodology:**
+- Estimated improvements based on theoretical parallel execution model
+- Before: Sequential operations sum their execution times (t1 + t2 + t3 + ... + tn)
+- After: Parallel operations take the maximum time of concurrent operations (max(t1, t2, t3, ...))
+- Desktop platforms benefit most due to more initialization operations
+- Actual improvements may vary based on hardware, network conditions, and disk I/O
+
 | Metric | Before | After | Improvement |
 |--------|--------|-------|-------------|
-| Desktop startup (estimated) | 3-4s | 2-2.5s | 30-40% |
-| Initialization operations | Sequential | Parallel | Concurrent |
+| Desktop startup (theoretical) | 3-4s | 2-2.5s | 30-40% |
+| Initialization model | Sequential | Parallel | Concurrent execution |
 | Error handling | Silent failures | Logged errors | Better debugging |
+| Resilience | Blocking failures | Non-blocking | Improved robustness |
+
+**Note:** These estimates are theoretical calculations based on converting sequential operations to parallel execution. Actual performance gains will depend on:
+- Hardware specifications (CPU cores, disk speed, network latency)
+- Platform-specific initialization overhead
+- System load and resource availability
+- Individual operation execution times
+
+For accurate measurements in production, use Flutter DevTools Timeline with specific hardware profiles.
 
 ### Code Quality Improvements
 | Metric | Before | After | Improvement |

@@ -82,25 +82,35 @@ Future<void> main(List<String> rawArgs) async {
 
     // Parallel initialization of independent async operations
     // This significantly reduces startup time by running operations concurrently
-    await Future.wait([
+    final initFutures = <Future>[
       // Core storage initialization (must complete before app runs)
       KVStoreService.initialize(),
       EncryptedKvStoreService.initialize(),
-      
-      // Platform-specific async initialization
-      if (kIsAndroid) FlutterDisplayMode.setHighRefreshRate(),
-      if (kIsAndroid || kIsDesktop) NewPipeExtractor.init(),
       migrateMacOsFromSandboxToNoSandbox(),
-      
-      // Desktop-specific initialization
-      if (kIsDesktop) windowManager.setPreventClose(true),
-      if (kIsWindows) SMTCWindows.initialize(),
-    ]);
+    ];
+
+    // Platform-specific async initialization
+    if (kIsAndroid) {
+      initFutures.add(FlutterDisplayMode.setHighRefreshRate());
+    }
+    if (kIsAndroid || kIsDesktop) {
+      initFutures.add(NewPipeExtractor.init());
+    }
+    if (kIsDesktop) {
+      initFutures.add(windowManager.setPreventClose(true));
+    }
+    if (kIsWindows) {
+      initFutures.add(SMTCWindows.initialize());
+    }
+
+    await Future.wait(initFutures);
 
     // Desktop-specific initialization that depends on KVStoreService
     if (kIsDesktop) {
       // Run these in parallel as they don't depend on each other
-      await Future.wait([
+      final desktopFutures = <Future>[
+        localNotifier.setup(appName: "Spotube"),
+        WindowManagerTools.initialize(),
         YtDlp.instance
             .setBinaryLocation(
               KVStoreService.getYoutubeEnginePath(YoutubeClientEngine.ytDlp) ??
@@ -114,9 +124,9 @@ Future<void> main(List<String> rawArgs) async {
           AppLogger.instance.e('Discord RPC initialization failed', error: e, stackTrace: stack);
           return null;
         }),
-        localNotifier.setup(appName: "Spotube"),
-        WindowManagerTools.initialize(),
-      ]);
+      ];
+
+      await Future.wait(desktopFutures);
     }
 
     final database = AppDatabase();
