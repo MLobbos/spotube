@@ -1,0 +1,157 @@
+name: Performance Improvement
+description: Suggest a performance optimization or report a performance issue
+title: "[Performance]: "
+labels: ["performance", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to suggest a performance improvement!
+        
+        Please fill out the form below to help us understand the performance issue or optimization opportunity.
+
+  - type: dropdown
+    id: performance-area
+    attributes:
+      label: Performance Area
+      description: What area of the app does this affect?
+      options:
+        - App Startup / Initialization
+        - UI Rendering / Frame Rate
+        - Memory Usage
+        - Network / API Calls
+        - Database Queries
+        - Audio Playback
+        - Search / Filtering
+        - Image Loading / Caching
+        - Background Tasks
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      description: Which platform(s) are affected?
+      multiple: true
+      options:
+        - Android
+        - iOS
+        - Windows
+        - Linux
+        - macOS
+        - Web
+        - All Platforms
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How much does this impact user experience?
+      options:
+        - Critical - App is unusable
+        - High - Significantly degrades experience
+        - Medium - Noticeable but usable
+        - Low - Minor optimization opportunity
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current Behavior
+      description: Describe the current performance issue or behavior
+      placeholder: |
+        Example: App takes 5-10 seconds to start on desktop, with a frozen splash screen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected / Desired Behavior
+      description: What performance behavior would you like to see?
+      placeholder: |
+        Example: App should start in under 2 seconds with a responsive splash screen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: profiling-data
+    attributes:
+      label: Profiling Data (Optional)
+      description: If you have profiling data (Flutter DevTools, metrics, etc.), please share it
+      placeholder: |
+        Paste profiling screenshots, timeline data, or performance metrics here.
+        You can attach images by dragging and dropping.
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we observe this performance issue?
+      placeholder: |
+        1. Open the app
+        2. Navigate to...
+        3. Notice slow/laggy behavior when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: device-info
+    attributes:
+      label: Device Information
+      description: What device are you using?
+      placeholder: |
+        - Device Model: iPhone 14 Pro / Samsung Galaxy S23 / MacBook Pro M1
+        - OS Version: iOS 17 / Android 14 / macOS Sonoma
+        - App Version: 5.1.0
+        - RAM: 8GB
+        - Storage: 256GB (150GB free)
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution (Optional)
+      description: If you have ideas on how to fix this, please share
+      placeholder: |
+        Example: Initialize Discord RPC lazily only when user enables it in settings.
+        
+        Example: Use const constructors in SearchPage to reduce rebuilds.
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References (Optional)
+      description: Links to documentation, similar issues, or relevant resources
+      placeholder: |
+        - Flutter Performance Docs: https://...
+        - Related Issue: #123
+        - Similar discussion: https://...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues to ensure this hasn't been reported
+          required: true
+        - label: I have included profiling data or measurements (if applicable)
+        - label: I have tested this on the latest version of Spotube
+          required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        
+        ## Additional Resources
+        
+        - [Performance Optimization Guide](https://github.com/KRTirtho/spotube/blob/main/docs/PERFORMANCE_OPTIMIZATION.md)
+        - [Contributing Guidelines](https://github.com/KRTirtho/spotube/blob/main/CONTRIBUTION.md)
+        - [Flutter Performance Best Practices](https://docs.flutter.dev/perf/best-practices)

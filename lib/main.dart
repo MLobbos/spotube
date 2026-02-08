@@ -20,6 +20,7 @@ import 'package:spotube/collections/env.dart';
 import 'package:spotube/collections/http-override.dart';
 import 'package:spotube/collections/intents.dart';
 import 'package:spotube/collections/routes.dart';
+import 'package:spotube/hooks/configurators/use_app_initializers.dart';
 import 'package:spotube/hooks/configurators/use_close_behavior.dart';
 import 'package:spotube/hooks/configurators/use_deep_linking.dart';
 import 'package:spotube/hooks/configurators/use_disable_battery_optimizations.dart';
@@ -28,16 +29,9 @@ import 'package:spotube/hooks/configurators/use_get_storage_perms.dart';
 import 'package:spotube/hooks/configurators/use_has_touch.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/modules/settings/color_scheme_picker_dialog.dart';
-import 'package:spotube/provider/audio_player/audio_player_streams.dart';
 import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/glance/glance.dart';
-import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
-import 'package:spotube/provider/metadata_plugin/updater/update_checker.dart';
-import 'package:spotube/provider/server/bonsoir.dart';
-import 'package:spotube/provider/server/server.dart';
-import 'package:spotube/provider/tray_manager/tray_manager.dart';
 import 'package:spotube/l10n/l10n.dart';
-import 'package:spotube/provider/connect/clients.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/cli/cli.dart';
@@ -72,55 +66,70 @@ Future<void> main(List<String> rawArgs) async {
 
     // await registerWindowsScheme("spotify");
 
+    // Synchronous initialization (can run immediately, no await needed)
     tz.initializeTimeZones();
-
     FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-
     MediaKit.ensureInitialized();
-
-    await migrateMacOsFromSandboxToNoSandbox();
-
-    // force High Refresh Rate on some Android devices (like One Plus)
-    if (kIsAndroid) {
-      await FlutterDisplayMode.setHighRefreshRate();
-    }
-    if (kIsAndroid || kIsDesktop) {
-      await NewPipeExtractor.init();
-    }
 
     if (!kIsWeb) {
       MetadataGod.initialize();
     }
 
-    await KVStoreService.initialize();
-
-    if (kIsDesktop) {
-      await windowManager.setPreventClose(true);
-      await YtDlp.instance
-          .setBinaryLocation(
-            KVStoreService.getYoutubeEnginePath(YoutubeClientEngine.ytDlp) ??
-                "yt-dlp${kIsWindows ? '.exe' : ''}",
-          )
-          .catchError((e, stack) => null);
-      await FlutterDiscordRPC.initialize(Env.discordAppId);
-    }
-
-    if (kIsWindows) {
-      await SMTCWindows.initialize();
-    }
-
-    await EncryptedKvStoreService.initialize();
-
-    final database = AppDatabase();
-
-    if (kIsDesktop) {
-      await localNotifier.setup(appName: "Spotube");
-      await WindowManagerTools.initialize();
-    }
-
+    // Platform-specific synchronous setup
     if (kIsIOS) {
       HomeWidget.setAppGroupId("group.spotube_home_player_widget");
     }
+
+    // Parallel initialization of independent async operations
+    // This significantly reduces startup time by running operations concurrently
+    final initFutures = <Future>[
+      // Core storage initialization (must complete before app runs)
+      KVStoreService.initialize(),
+      EncryptedKvStoreService.initialize(),
+      migrateMacOsFromSandboxToNoSandbox(),
+    ];
+
+    // Platform-specific async initialization
+    if (kIsAndroid) {
+      initFutures.add(FlutterDisplayMode.setHighRefreshRate());
+    }
+    if (kIsAndroid || kIsDesktop) {
+      initFutures.add(NewPipeExtractor.init());
+    }
+    if (kIsDesktop) {
+      initFutures.add(windowManager.setPreventClose(true));
+    }
+    if (kIsWindows) {
+      initFutures.add(SMTCWindows.initialize());
+    }
+
+    await Future.wait(initFutures);
+
+    // Desktop-specific initialization that depends on KVStoreService
+    if (kIsDesktop) {
+      // Run these in parallel as they don't depend on each other
+      final desktopFutures = <Future>[
+        localNotifier.setup(appName: "Spotube"),
+        WindowManagerTools.initialize(),
+        YtDlp.instance
+            .setBinaryLocation(
+              KVStoreService.getYoutubeEnginePath(YoutubeClientEngine.ytDlp) ??
+                  "yt-dlp${kIsWindows ? '.exe' : ''}",
+            )
+            .catchError((e, stack) {
+          AppLogger.instance.e('YtDlp initialization failed', error: e, stackTrace: stack);
+          return null;
+        }),
+        FlutterDiscordRPC.initialize(Env.discordAppId).catchError((e, stack) {
+          AppLogger.instance.e('Discord RPC initialization failed', error: e, stackTrace: stack);
+          return null;
+        }),
+      ];
+
+      await Future.wait(desktopFutures);
+    }
+
+    final database = AppDatabase();
 
     runApp(
       ProviderScope(
@@ -149,16 +158,8 @@ class Spotube extends HookConsumerWidget {
     final router = useMemoized(() => AppRouter(ref), []);
     final hasTouchSupport = useHasTouch();
 
-    ref.listen(audioPlayerStreamListenersProvider, (_, __) {});
-    ref.listen(bonsoirProvider, (_, __) {});
-    ref.listen(connectClientsProvider, (_, __) {});
-    ref.listen(serverProvider, (_, __) {});
-    ref.listen(trayManagerProvider, (_, __) {});
-    ref.listen(metadataPluginsProvider, (_, __) {});
-    ref.listen(metadataPluginProvider, (_, __) {});
-    ref.listen(audioSourcePluginProvider, (_, __) {});
-    ref.listen(metadataPluginUpdateCheckerProvider, (_, __) {});
-    ref.listen(audioSourcePluginUpdateCheckerProvider, (_, __) {});
+    // Initialize all app-level providers (consolidated from multiple ref.listen calls)
+    useAppInitializers(ref);
 
     useFixWindowStretching();
     useDisableBatteryOptimizations();
