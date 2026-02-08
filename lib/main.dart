@@ -70,7 +70,7 @@ Future<void> main(List<String> rawArgs) async {
     tz.initializeTimeZones();
     FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
     MediaKit.ensureInitialized();
-    
+
     if (!kIsWeb) {
       MetadataGod.initialize();
     }
@@ -106,8 +106,14 @@ Future<void> main(List<String> rawArgs) async {
               KVStoreService.getYoutubeEnginePath(YoutubeClientEngine.ytDlp) ??
                   "yt-dlp${kIsWindows ? '.exe' : ''}",
             )
-            .catchError((e, stack) => null),
-        FlutterDiscordRPC.initialize(Env.discordAppId).catchError((e, stack) => null),
+            .catchError((e, stack) {
+          AppLogger.instance.e('YtDlp initialization failed', error: e, stackTrace: stack);
+          return null;
+        }),
+        FlutterDiscordRPC.initialize(Env.discordAppId).catchError((e, stack) {
+          AppLogger.instance.e('Discord RPC initialization failed', error: e, stackTrace: stack);
+          return null;
+        }),
         localNotifier.setup(appName: "Spotube"),
         WindowManagerTools.initialize(),
       ]);
